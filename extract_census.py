@@ -11,12 +11,24 @@ year = 2014 # TODO Make argument
 release = 5 # TODO Make into an argument
 
 s3 = S3FS(
-    bucket='s3://extracts.census.civicknowledge.com', # TODO Make into an argument
+    bucket='extracts.census.civicknowledge.com', # TODO Make into an argument
     prefix='/', #todo make into an argument
     aws_access_key=os.environ.get('AWS_ACCESS_KEY'),
     aws_secret_key=os.environ.get('AWS_SECRET_KEY')
 
 )
+
+# Dealth with some stupid bug .... 
+import ssl
+_old_match_hostname = ssl.match_hostname
+
+def _new_match_hostname(cert, hostname):
+    if hostname.endswith('.s3.amazonaws.com'):
+        pos = hostname.find('.s3.amazonaws.com')
+        hostname = hostname[:pos].replace('.', '') + hostname[pos:]
+    return _old_match_hostname(cert, hostname)
+
+ssl.match_hostname = _new_match_hostname
 
 l = ambry.get_library()
 b = l.bundle('census.gov-acs-p{}ye{}'.format(release, year))
@@ -41,7 +53,6 @@ for p in b.partitions:
         
         with s3.open(file_name, 'wb') as f:
             w = csv.writer(f)
-            print [ unicode(c.name) for c in p.table.columns]
             w.writerow([ unicode(c.name) for c in p.table.columns])
             for row in sl_rows:
                 w.writerow(row)
