@@ -33,6 +33,7 @@ ssl.match_hostname = _new_match_hostname
 l = ambry.get_library()
 b = l.bundle('census.gov-acs-p{}ye{}'.format(release, year))
 
+part_no = 1
 for p in b.partitions:
     
     rows = defaultdict(list)
@@ -49,7 +50,8 @@ for p in b.partitions:
         sl_rows = rows[sumlevel]
 
         file_name = "{}/{}/{}/{}.csv".format(year, release, table_name, sumlevel)
-        print 'Writing ', i, file_name, len(sl_rows)
+        print 'Writing ', part_no, i, file_name, len(sl_rows)
+        part_no += 1
         
         with s3.open(file_name, 'wb') as f:
             w = csv.writer(f)
