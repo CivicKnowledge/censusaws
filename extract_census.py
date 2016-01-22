@@ -33,6 +33,9 @@ ssl.match_hostname = _new_match_hostname
 l = ambry.get_library()
 b = l.bundle('census.gov-acs-p{}ye{}'.format(release, year))
 
+
+sumlevels = [40,50,60,160,400,140,150,950,960,970,610,620,500]
+
 part_no = 1
 for p in b.partitions:
     
@@ -42,9 +45,11 @@ for p in b.partitions:
 
     print 'Loading: ', year, release, table_name
     p.localize()
+
     
     for i, row in enumerate(p):
-        rows[row.sumlevel].append(row.values())
+        if row.sumlevel in sumlevels:
+            rows[row.sumlevel].append(row.values())
     
     for i, sumlevel in enumerate(sorted(rows.keys())):
         sl_rows = rows[sumlevel]
