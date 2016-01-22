@@ -34,32 +34,46 @@ l = ambry.get_library()
 b = l.bundle('census.gov-acs-p{}ye{}'.format(release, year))
 
 
-sumlevels = [40,50,60,160,400,140,150,950,960,970,610,620,500]
+# Break up the rows we are storing to reduce memory usage
+sumlevel_groups = [
+    [40,50,60,160,400,950,960,970,610,620,500],
+    [140], # Tracts
+    [150]  # Blockgroups
+]
+    
+
+
+def write_rows(sumlevel, table_name, p, rows):
+    
+        file_name = "{}/{}/{}/{}.csv".format(year, release, table_name, sumlevel)
+        
+        with s3.open(file_name, 'wb') as f:
+            w = csv.writer(f)
+            w.writerow([ unicode(c.name) for c in p.table.columns])
+            for row in rows:
+                w.writerow(row)
 
 part_no = 1
 for p in b.partitions:
-    
-    rows = defaultdict(list)
     
     table_name = p.table.name
 
     print 'Loading: ', year, release, table_name
     p.localize()
 
-    
-    for i, row in enumerate(p):
-        if row.sumlevel in sumlevels:
-            rows[row.sumlevel].append(row.values())
-    
-    for i, sumlevel in enumerate(sorted(rows.keys())):
-        sl_rows = rows[sumlevel]
-
-        file_name = "{}/{}/{}/{}.csv".format(year, release, table_name, sumlevel)
-        print 'Writing ', part_no, i, file_name, len(sl_rows)
-        part_no += 1
+    for sumlevels in sumlevel_groups:
         
-        with s3.open(file_name, 'wb') as f:
-            w = csv.writer(f)
-            w.writerow([ unicode(c.name) for c in p.table.columns])
-            for row in sl_rows:
-                w.writerow(row)
+        rows = defaultdict(list)
+        
+        for row in p:
+            if row.sumlevel in sumlevels:
+                rows[row.sumlevel].append(row.values())
+                
+        for sumlevel in sorted(rows.keys()):
+            sl_rows = rows[sumlevel]
+            part_no += 1
+            print 'Writing ', part_no,  sumlevel, table_name, len(sl_rows)
+            write_rows(sumlevel, table_name, p, sl_rows)
+        
+    
+    
