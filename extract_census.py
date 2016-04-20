@@ -42,7 +42,6 @@ sumlevel_groups = [
 ]
     
 
-
 def write_rows(sumlevel, table_name, p, rows):
     
         file_name = "{}/{}/{}/{}.csv".format(year, release, table_name, sumlevel)
